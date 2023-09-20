@@ -3,6 +3,8 @@ using namespace std;
 
 enviarByte(byte dato);
 encenderTodosLosLEDs();
+setup();
+loop();
 
 int main(){
 
