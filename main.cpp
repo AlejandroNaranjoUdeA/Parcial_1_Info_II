@@ -1,4 +1,4 @@
-#include<Arduino.h>
+#include <Arduino.h>
 
 // Definiciones de pines para los 74HC595
 #define DS 11   // Pin de Datos Serie
@@ -57,12 +57,31 @@ void imagen() {
     apagarTodosLosLEDs();
 
     // Solicitar al usuario ingresar el patrón por el monitor serial
-    Serial.println("Ingrese el patron (8 filas de 8 bits):");
+    Serial.println("Ingrese el patrón (8 filas de 8 bits):");
 
-    for (int i = 0; i < filas; i++) {
+        for (int i = 0; i < filas; i++) {
         // Leer una línea de bits del usuario y almacenarla en la matriz de datos
         while (Serial.available() <= 0);
         matrizDeDatos[i] = Serial.parseInt();
+    }
+}
+
+// Función para generar un patrón de una "X"
+void generarPatronX() {
+    for (int i = 0; i < filas; i++) {
+        matrizDeDatos[i] = 0x00;
+        matrizDeDatos[i] |= (1 << i); // Enciende el LED en la diagonal principal
+        matrizDeDatos[i] |= (1 << (filas - 1 - i)); // Enciende el LED en la diagonal secundaria
+    }
+}
+
+// Función para generar un patrón de un "rombo"
+void generarPatronRombo() {
+    for (int i = 0; i < filas; i++) {
+        matrizDeDatos[i] = 0x00;
+        matrizDeDatos[i] |= (1 << (filas / 2)); // Enciende el LED en la columna central
+        matrizDeDatos[i] |= (1 << i); // Enciende el LED en la diagonal superior
+        matrizDeDatos[i] |= (1 << (filas - 1 - i)); // Enciende el LED en la diagonal inferior
     }
 }
 
@@ -88,7 +107,20 @@ void loop() {
     for (int i = 0; i < filas; i++) {
         enviarByte(matrizDeDatos[i]);
     }
-}
 
-// Liberar la memoria al final del programa
-void __cxa_pure_virtual() {}
+    // Leer el comando del usuario por el monitor serial
+    if (Serial.available() > 0) {
+        char comando = Serial.read();
+        switch (comando) {
+        case 'X':
+            generarPatronX();
+            break;
+        case 'R':
+            generarPatronRombo();
+            break;
+        default:
+            // Otro comando no reconocido
+            break;
+        }
+    }
+}
