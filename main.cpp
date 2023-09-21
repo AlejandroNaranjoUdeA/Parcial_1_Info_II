@@ -1,41 +1,68 @@
-#include<iostream>
-using namespace std;
+#include<Arduino.h>
 
-enviarByte(byte dato);
-encenderTodosLosLEDs();
-setup();
-loop();
+// Definiciones de pines para los 74HC595
+#define DS 11   // Pin de Datos Serie
+#define STCP 12 // Pin de Almacenamiento de Registro
+#define SHCP 13 // Pin de Reloj de Desplazamiento
 
-int main(){
+// Tamaño de la matriz
+const int filas = 8;
+const int columnas = 8;
 
-    // Definiciones de pines para los 74HC595
-    int DS =11;   // Pin de Datos Serie
-    int STCP =12; // Pin de Almacenamiento de Registro
-    int SHCP =13; // Pin de Reloj de Desplazamiento
+byte* matrizDeDatos; // Puntero a un arreglo de bytes para representar el estado de las filas
 
-    // Tamaño de la matriz
-    const int filas = 8;
-    const int columnas = 8;
-
-    return 0;
+// Función para enviar un byte a los registros 74HC595
+void enviarByte(byte dato) {
+    digitalWrite(STCP, LOW);
+    shiftOut(DS, SHCP, MSBFIRST, dato);
+    digitalWrite(STCP, HIGH);
 }
 
-// Función para encender todos los LEDs
-void enviarByte(byte dato) {
-    digitalWrite(STCP, LOW); // Inicio de la transmisión
-    for (int i = 7; i >= 0; i--) {
-        digitalWrite(DS, (dato >> i) & 1); // Envía el siguiente bit
-        digitalWrite(SHCP, HIGH); // Pulso de reloj
-        digitalWrite(SHCP, LOW);
-    }
-    digitalWrite(STCP, HIGH); // Fin de la transmisión
+// Función para inicializar la matriz de LEDs
+void inicializarMatriz() {
+    matrizDeDatos = new byte[filas];
+    memset(matrizDeDatos, 0, filas);
+}
+
+// Función para liberar la memoria utilizada por la matriz de LEDs
+void liberarMatriz() {
+    delete[] matrizDeDatos;
 }
 
 // Función para encender todos los LEDs
 void encenderTodosLosLEDs() {
-    byte datos = B11111111; // Todos los bits en 1 para encender todos los LEDs
     for (int i = 0; i < filas; i++) {
-        enviarByte(datos); // Envía el mismo byte a todas las columnas
+        matrizDeDatos[i] = 0xFF;
+    }
+}
+
+// Función para apagar todos los LEDs
+void apagarTodosLosLEDs() {
+    for (int i = 0; i < filas; i++) {
+        matrizDeDatos[i] = 0x00;
+    }
+}
+
+// Función para verificar que todos los LEDs funcionan correctamente
+void verificacion() {
+    encenderTodosLosLEDs();
+    delay(1000); // Espera 1 segundo
+    apagarTodosLosLEDs();
+    delay(1000); // Espera 1 segundo
+}
+
+// Función para mostrar un patrón ingresado por el usuario
+void imagen() {
+    // Limpiar la matriz de datos
+    apagarTodosLosLEDs();
+
+    // Solicitar al usuario ingresar el patrón por el monitor serial
+    Serial.println("Ingrese el patron (8 filas de 8 bits):");
+
+    for (int i = 0; i < filas; i++) {
+        // Leer una línea de bits del usuario y almacenarla en la matriz de datos
+        while (Serial.available() <= 0);
+        matrizDeDatos[i] = Serial.parseInt();
     }
 }
 
@@ -43,16 +70,25 @@ void setup() {
     pinMode(DS, OUTPUT);
     pinMode(STCP, OUTPUT);
     pinMode(SHCP, OUTPUT);
-    // Configura los pines de los registros 74HC595
 
-    digitalWrite(STCP, LOW); // Inicializa el pin STCP en LOW
-    encenderTodosLosLEDs(); // Enciende todos los LEDs al inicio
+    Serial.begin(9600);
+
+    // Inicializar la matriz de LEDs
+    inicializarMatriz();
 }
 
 void loop() {
-    // Enciende todos los LEDs cada 2 segundos
-    encenderTodosLosLEDs();
-    delay(2000);
-    encenderTodosLosLEDs(); // Apaga todos los LEDs al final
-    delay(2000);
+    // Verificación de LEDs
+    verificacion();
+
+    // Mostrar un patrón personalizado
+    imagen();
+
+    // Enviar los datos a la matriz de LEDs
+    for (int i = 0; i < filas; i++) {
+        enviarByte(matrizDeDatos[i]);
+    }
 }
+
+// Liberar la memoria al final del programa
+void __cxa_pure_virtual() {}
